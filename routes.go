@@ -3,12 +3,17 @@ package main
 import (
 	"fmt"
 	"time"
-
+	
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
+type LoginRequest struct {
+	Username string `json: "username"`
+	Email string `json:"email"`
+	Password string `json:"password"`
+}
 func LoginHandler(c *gin.Context) {
 	Users, err := db()
 	if err != nil {
@@ -52,10 +57,15 @@ func SignUpHandler(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
 
-	username := c.PostForm("username")
-	password := c.PostForm("password")
-	email := c.PostForm("email")
+	username := req.Username
+	password := req.Password
+	email := req.Email
 
 	checkUser, err := CheckUserExistenceByQuery(bson.M{"email": email}, Users)
 
@@ -73,7 +83,6 @@ func SignUpHandler(c *gin.Context) {
 			})
 			return
 		}
-
 		newUserData := User{
 			Username: username,
 			Password: string(encryptedPassword),
@@ -89,11 +98,12 @@ func SignUpHandler(c *gin.Context) {
 			return
 		}
 
-		expirationTime := time.Now().Add(300 * time.Minute).Unix()
-		c.SetCookie("email", token, int(expirationTime), "/", "localhost", false, true)
+		// expirationTime := time.Now().Add(300 * time.Minute).Unix()
+		// c.SetCookie("email", token, int(expirationTime), "/", "localhost", false, true)
 
 		c.JSON(200, gin.H{
 			"ID":     newUser,
+			"jwtToken": token,
 			"status": "userCreatedSuccessfully",
 		})
 		return
