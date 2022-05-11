@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -11,19 +12,33 @@ import (
 )
 
 type (
+	UserQuery struct {
+		ID       primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+		Username string             `json:"username"`
+		Password string             `json:"password"`
+		Email    string             `json:"email"`
+		Clients  []Client           `json:"clients"`
+	}
 	User struct {
-		Username string   `json:"username"`
-		Password string   `json:"password"`
-		Email string   `json:"email"`
-		Clients  []Client `json:"clients"`
+		Username string             `json:"username"`
+		Password string             `json:"password"`
+		Email    string             `json:"email"`
+		Clients  []Client           `json:"clients"`
+
 	}
 	Client struct {
-		ClientName        string   `json:"clientname"`
-		ClientDescription string   `json:"clientdescription"`
-		ClientContacts    []string `json:"clientcontacts"`
+		ClientName        string   `json:"client_name"`
+		ClientDescription string   `json:"client_description"`
+		ClientContacts    []string `json:"client_contacts"`
 		// daily weekly monthly yearly
-		ClientContactRate string `json:"clientcontactrate"`
-		ClientAddress     string `json:"clientadress"`
+		ClientContactRate string `json:"client_contact_rate"`
+		ClientAddress     string `json:"client_adress"`
+		LastContacted primitive.DateTime `json:"last_contacted"`
+		PreviousPurchases []Sales `json:"previous_purchases"`
+	}
+	Sales struct {
+		DateSold primitive.DateTime `json:"date_sold"`
+		ProductsBought []string `json:"products_bought"`
 	}
 	Status struct {
 		OK         bool
@@ -70,34 +85,33 @@ func CreateUser(Users *mongo.Collection, UserData User) interface{} {
 	return ID
 }
 
-func FindUserByID(ID string, Users *mongo.Collection) User {
+func FindUserByID(ID string, Users *mongo.Collection) *UserQuery {
 	objectId, err := primitive.ObjectIDFromHex(ID)
 	if err != nil {
 		fmt.Println(err)
 	}
-	result := &User{}
+	result := &UserQuery{}
 	err = Users.FindOne(context.TODO(), bson.M{"_id": objectId}).Decode(result)
 	if err != nil {
 		fmt.Println(err)
 	}
-	return *result
+	return result
 }
 
-func CheckUserExistenceByQuery(query bson.M, Users *mongo.Collection) (*User, error) {
-	result := &User{}
+func CheckUserExistenceByQuery(query bson.M, Users *mongo.Collection) (*UserQuery, error) {
+	result := &UserQuery{}
 	err := Users.FindOne(context.TODO(), query).Decode(result)
 	if err != nil {
 		fmt.Println(err)
-		return result, err;	
+		return result, err
 	}
-	return result, nil;
+	return result, nil
 }
 
-
-func UpdateUserByID(query bson.M, updateFilter bson.M, Users *mongo.Collection) User {
+func UpdateUserByID(query bson.M, updateFilter bson.M, Users *mongo.Collection) *UserQuery {
 	// filter := bson.M{"_id": insertResult.InsertedID}
 	// update := bson.M{"$set": bson.M{"username": "WASAAAAP"}}
-	result := &User{}
+	result := &UserQuery{}
 	after := options.After
 	returnOpt := options.FindOneAndUpdateOptions{
 		ReturnDocument: &after,
@@ -106,5 +120,5 @@ func UpdateUserByID(query bson.M, updateFilter bson.M, Users *mongo.Collection) 
 	if err != nil {
 		fmt.Println(err)
 	}
-	return *result
+	return result
 }

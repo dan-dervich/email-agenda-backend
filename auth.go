@@ -3,21 +3,24 @@ package main
 import (
 	"errors"
 	"time"
-
 	"github.com/dgrijalva/jwt-go"
 )
 
 type JwtData struct {
 	Email string `json:"email"`
+	ID string `jsong:"id"`
+	Username string `json:"username"`
 	jwt.StandardClaims
 }
 
 var jwtSecret = []byte("078fcc13c}84$f6c923c89394{bbd0#e")
 
-func CreateJWT(email string, expTimeInMinutes float64) (string, error) {
+func CreateJWT(email string, username string, id string, expTimeInMinutes float64) (string, error) {
 	expirationTime := time.Now().Add(time.Duration(expTimeInMinutes) * time.Minute)
 	jwtData := &JwtData{
 		Email: email,
+		Username: username,
+		ID: id,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expirationTime.Unix(),
 		},
